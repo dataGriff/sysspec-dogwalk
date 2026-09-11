@@ -45,8 +45,8 @@ mocks/                           Microcks fixtures: <service>.rest|events.exampl
 
 ## Working here
 
-- `task ci` is the definition of green - the same gates run locally, in
-  the pre-commit hook and in CI. `mise install` covers the toolchain; the
+- `task ci` is the definition of green - the same gates run locally and
+  in CI. `mise install` covers the toolchain; the
   mock cycle (`contract:test`, `mocks:test`) additionally needs a running
   Docker daemon. `task lint` and `task check` run everything else.
 - Gated artifacts (contracts, data contracts, feature files) are never

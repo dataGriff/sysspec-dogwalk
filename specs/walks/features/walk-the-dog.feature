@@ -56,7 +56,7 @@ Feature: Walking the dog
 
   Scenario: Completion is a CloudEvents envelope that carries the walker's fee
     Given the walker started the walk at 2026-09-14T09:02:00Z
-    When the walker completes it at 2026-09-14T10:01:00Z via completeWalk
+    When the walker completes it at 2026-09-14T10:01:00Z with notes "Lovely walk, chased a squirrel" via completeWalk
     Then a "WalkCompleted" event is published on "walks.completed.v1"
     And the envelope carries specversion "1.0", a unique id and a time
     And the envelope source is /walks and its type is com.hungovercoders.walks.completed.v1

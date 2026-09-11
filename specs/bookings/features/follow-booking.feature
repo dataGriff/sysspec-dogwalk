@@ -44,6 +44,19 @@ Feature: Cancelling and following a booking
     Then the response status is 409
     And the problem body carries an error_code and message
 
+  Scenario: A no-show needs a walker who was due
+    Given no walker has accepted the booking
+    When the owner cancels the booking because "walker_no_show" via cancelBooking
+    Then the response status is 400
+    And the problem body carries an error_code and message
+
+  Scenario: A no-show can be reported once a walker had accepted
+    Given a "WalkAccepted" event arrived on "walks.accepted.v1" for that booking_id
+    When the owner cancels the booking because "walker_no_show" via cancelBooking
+    Then the response status is 200
+    And the booking status is "cancelled"
+    And the "BookingCancelled" event data reason is "walker_no_show"
+
   Scenario: Cancelling an unknown booking returns 404
     When an unknown booking_id is cancelled via cancelBooking
     Then the response status is 404

@@ -151,7 +151,9 @@ paths:
       summary: Cancel a booking
       description: >
         Cancels a requested or accepted booking. Once the walk is in
-        progress or completed the booking can no longer be cancelled. On
+        progress or completed the booking can no longer be cancelled. The
+        reason walker_no_show is only valid once a walker has accepted the
+        walk - on a requested booking nobody was due, so it is a 400. On
         success a BookingCancelled event is published.
       tags: [bookings]
       parameters:
@@ -172,6 +174,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Booking'
+        '400':
+          description: walker_no_show given for a booking no walker has accepted yet.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
         '404':
           description: No such booking.
           content:
@@ -308,6 +316,10 @@ components:
         reason:
           type: string
           enum: [owner_request, dog_unwell, walker_no_show]
+          description: >
+            walker_no_show is only valid on an accepted booking - the walker
+            who accepted it did not turn up. On a requested booking it is
+            rejected with a 400.
     Problem:
       type: object
       required: [error_code, message]
