@@ -1,0 +1,70 @@
+apiVersion: mocks.microcks.io/v1alpha1
+kind: APIExamples
+metadata:
+  name: Walks
+  version: 1.0.0
+operations:
+  'SEND publishWalkAccepted':
+    accepted:
+      eventMessage:
+        payload: |-
+          {
+            "specversion": "1.0",
+            "id": "cccccccc-3333-4333-8333-cccccccccccc",
+            "source": "/walks",
+            "type": "com.hungovercoders.walks.accepted.v1",
+            "subject": "66666666-6666-6666-6666-666666666666",
+            "time": "2026-09-12T19:15:00Z",
+            "datacontenttype": "application/json",
+            "data": {
+              "walk_id": "66666666-6666-6666-6666-666666666666",
+              "booking_id": "11111111-1111-1111-1111-111111111111",
+              "walker_id": "55555555-5555-5555-5555-555555555555",
+              "walker_name": "Sam",
+              "accepted_at": "2026-09-12T19:15:00Z"
+            }
+          }
+  'SEND publishWalkStarted':
+    started:
+      eventMessage:
+        payload: |-
+          {
+            "specversion": "1.0",
+            "id": "dddddddd-4444-4444-8444-dddddddddddd",
+            "source": "/walks",
+            "type": "com.hungovercoders.walks.started.v1",
+            "subject": "66666666-6666-6666-6666-666666666666",
+            "time": "2026-09-14T09:02:00Z",
+            "datacontenttype": "application/json",
+            "data": {
+              "walk_id": "66666666-6666-6666-6666-666666666666",
+              "booking_id": "11111111-1111-1111-1111-111111111111",
+              "walker_id": "55555555-5555-5555-5555-555555555555",
+              "started_at": "2026-09-14T09:02:00Z"
+            }
+          }
+  'SEND publishWalkCompleted':
+    completed:
+      eventMessage:
+        payload: |-
+          {
+            "specversion": "1.0",
+            "id": "eeeeeeee-5555-4555-8555-eeeeeeeeeeee",
+            "source": "/walks",
+            "type": "com.hungovercoders.walks.completed.v1",
+            "subject": "66666666-6666-6666-6666-666666666666",
+            "time": "2026-09-14T10:01:00Z",
+            "datacontenttype": "application/json",
+            "data": {
+              "walk_id": "66666666-6666-6666-6666-666666666666",
+              "booking_id": "11111111-1111-1111-1111-111111111111",
+              "walker_id": "55555555-5555-5555-5555-555555555555",
+              "completed_at": "2026-09-14T10:01:00Z",
+              "walked_minutes": 59,
+              "distance_metres": 3200,
+              "pee_count": 2,
+              "poo_count": 1,
+              "notes": "Lovely walk, chased a squirrel",
+              "fee_pence": 1920
+            }
+          }

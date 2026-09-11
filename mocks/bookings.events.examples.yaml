@@ -1,0 +1,50 @@
+apiVersion: mocks.microcks.io/v1alpha1
+kind: APIExamples
+metadata:
+  name: Bookings
+  version: 1.0.0
+operations:
+  'SEND publishBookingRequested':
+    requested:
+      eventMessage:
+        payload: |-
+          {
+            "specversion": "1.0",
+            "id": "aaaaaaaa-1111-4111-8111-aaaaaaaaaaaa",
+            "source": "/bookings",
+            "type": "com.hungovercoders.bookings.requested.v1",
+            "subject": "11111111-1111-1111-1111-111111111111",
+            "time": "2026-09-12T18:00:00Z",
+            "datacontenttype": "application/json",
+            "data": {
+              "booking_id": "11111111-1111-1111-1111-111111111111",
+              "owner_id": "22222222-2222-2222-2222-222222222222",
+              "dog_id": "33333333-3333-3333-3333-333333333333",
+              "dog_name": "Biscuit",
+              "dog_size": "medium",
+              "scheduled_for": "2026-09-14T09:00:00Z",
+              "duration_minutes": 60,
+              "pickup_postcode": "CF10 1AA",
+              "instructions": "Scared of bikes, keep to the park",
+              "price_pence": 2400,
+              "requested_at": "2026-09-12T18:00:00Z"
+            }
+          }
+  'SEND publishBookingCancelled':
+    cancelled:
+      eventMessage:
+        payload: |-
+          {
+            "specversion": "1.0",
+            "id": "bbbbbbbb-2222-4222-8222-bbbbbbbbbbbb",
+            "source": "/bookings",
+            "type": "com.hungovercoders.bookings.cancelled.v1",
+            "subject": "44444444-4444-4444-4444-444444444444",
+            "time": "2026-09-13T08:30:00Z",
+            "datacontenttype": "application/json",
+            "data": {
+              "booking_id": "44444444-4444-4444-4444-444444444444",
+              "cancelled_at": "2026-09-13T08:30:00Z",
+              "reason": "dog_unwell"
+            }
+          }

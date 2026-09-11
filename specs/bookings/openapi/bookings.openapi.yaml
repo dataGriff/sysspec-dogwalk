@@ -1,0 +1,333 @@
+openapi: 3.1.0
+info:
+  title: Bookings API
+  version: 1.0.0
+  description: >
+    The owner's API. Register a dog, request a walk for it, cancel a
+    walk that is no longer needed, and look up a booking to see who is
+    walking the dog and how the walk went.
+  contact:
+    name: team-owners
+
+tags:
+  - name: dogs
+    description: The dogs an owner can book walks for.
+  - name: bookings
+    description: Walk requests and their lifecycle as the owner sees it.
+
+paths:
+  /dogs:
+    post:
+      operationId: registerDog
+      summary: Register a dog
+      description: >
+        Registers a dog for an owner. Size drives which walkers can take
+        it and is one of small, medium or large.
+      tags: [dogs]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterDogRequest'
+      responses:
+        '201':
+          description: Dog registered.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dog'
+        '400':
+          description: Invalid dog - a size outside small, medium or large, or a missing name or breed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /dogs/{dog_id}:
+    get:
+      operationId: getDog
+      summary: Fetch a dog
+      description: Returns the dog by its id.
+      tags: [dogs]
+      parameters:
+        - name: dog_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The dog.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Dog'
+        '404':
+          description: No such dog.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /bookings:
+    post:
+      operationId: requestBooking
+      summary: Request a walk
+      description: >
+        Requests a walk for one of the owner's dogs at a scheduled time.
+        The price is fixed on request at 40 pence per minute of
+        duration_minutes. On success the booking is persisted and a
+        BookingRequested event is guaranteed to be published - never one
+        without the other.
+      tags: [bookings]
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          schema: { type: string }
+          description: >
+            Client-chosen key making the request idempotent. Replaying the
+            same key with the same body returns the original booking (201,
+            no second event); reusing it with a different body is a 409.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestBookingRequest'
+      responses:
+        '201':
+          description: Booking requested; a BookingRequested event will be published.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          description: >
+            Invalid request - a scheduled_for in the past, a
+            duration_minutes outside 30 to 120, a dog_id the owner does not
+            own, or an empty pickup_postcode.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: Idempotency-Key already used with a different body.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /bookings/{booking_id}:
+    get:
+      operationId: getBooking
+      summary: Fetch a booking
+      description: >
+        Returns the booking's current state, including the walker once one
+        has accepted it and the walk report once the walk is complete.
+      tags: [bookings]
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The booking.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '404':
+          description: No such booking.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /bookings/{booking_id}/cancel:
+    post:
+      operationId: cancelBooking
+      summary: Cancel a booking
+      description: >
+        Cancels a requested or accepted booking. Once the walk is in
+        progress or completed the booking can no longer be cancelled. The
+        reason walker_no_show is only valid once a walker has accepted the
+        walk - on a requested booking nobody was due, so it is a 400. On
+        success a BookingCancelled event is published.
+      tags: [bookings]
+      parameters:
+        - name: booking_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelBookingRequest'
+      responses:
+        '200':
+          description: Booking cancelled; a BookingCancelled event will be published.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          description: walker_no_show given for a booking no walker has accepted yet.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: No such booking.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: The walk is in progress or completed - too late to cancel.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /owners/{owner_id}/bookings:
+    get:
+      operationId: listOwnerBookings
+      summary: List an owner's bookings
+      description: >
+        Returns the owner's bookings, newest scheduled_for first,
+        optionally filtered by status.
+      tags: [bookings]
+      parameters:
+        - name: owner_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/BookingStatus'
+      responses:
+        '200':
+          description: The owner's bookings.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingList'
+
+components:
+  schemas:
+    RegisterDogRequest:
+      type: object
+      required: [owner_id, name, breed, size]
+      additionalProperties: false
+      properties:
+        owner_id: { type: string, format: uuid }
+        name: { type: string, minLength: 1 }
+        breed: { type: string, minLength: 1 }
+        size:
+          $ref: '#/components/schemas/DogSize'
+    DogSize:
+      type: string
+      enum: [small, medium, large]
+    Dog:
+      type: object
+      required: [dog_id, owner_id, name, breed, size]
+      additionalProperties: false
+      properties:
+        dog_id: { type: string, format: uuid }
+        owner_id: { type: string, format: uuid }
+        name: { type: string }
+        breed: { type: string }
+        size:
+          $ref: '#/components/schemas/DogSize'
+    RequestBookingRequest:
+      type: object
+      required: [owner_id, dog_id, scheduled_for, duration_minutes, pickup_postcode]
+      additionalProperties: false
+      properties:
+        owner_id: { type: string, format: uuid }
+        dog_id: { type: string, format: uuid }
+        scheduled_for: { type: string, format: date-time }
+        duration_minutes: { type: integer, minimum: 30, maximum: 120 }
+        pickup_postcode: { type: string, minLength: 1 }
+        instructions:
+          type: string
+          description: Anything the walker should know for this walk - temperament, route, keys.
+    BookingStatus:
+      type: string
+      enum: [requested, accepted, in_progress, completed, cancelled]
+    Booking:
+      type: object
+      required: [booking_id, owner_id, dog_id, status, scheduled_for, duration_minutes, pickup_postcode, price_pence]
+      additionalProperties: false
+      properties:
+        booking_id: { type: string, format: uuid }
+        owner_id: { type: string, format: uuid }
+        dog_id: { type: string, format: uuid }
+        status:
+          $ref: '#/components/schemas/BookingStatus'
+        scheduled_for: { type: string, format: date-time }
+        duration_minutes: { type: integer, minimum: 30, maximum: 120 }
+        pickup_postcode: { type: string }
+        instructions: { type: string }
+        price_pence:
+          type: integer
+          minimum: 0
+          description: Fixed on request at 40 pence per minute of duration_minutes.
+        walker_id:
+          type: string
+          format: uuid
+          description: Present once a walker has accepted the walk.
+        walker_name:
+          type: string
+          description: Present once a walker has accepted the walk.
+        report:
+          $ref: '#/components/schemas/WalkReport'
+    WalkReport:
+      type: object
+      description: The walker's report, present once the walk is completed.
+      required: [walked_minutes, distance_metres, pee_count, poo_count]
+      additionalProperties: false
+      properties:
+        walked_minutes: { type: integer, minimum: 0 }
+        distance_metres: { type: integer, minimum: 0 }
+        pee_count: { type: integer, minimum: 0 }
+        poo_count: { type: integer, minimum: 0 }
+        notes: { type: string }
+    BookingList:
+      type: object
+      required: [bookings]
+      additionalProperties: false
+      properties:
+        bookings:
+          type: array
+          items:
+            $ref: '#/components/schemas/Booking'
+    CancelBookingRequest:
+      type: object
+      required: [reason]
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+          enum: [owner_request, dog_unwell, walker_no_show]
+          description: >
+            walker_no_show is only valid on an accepted booking - the walker
+            who accepted it did not turn up. On a requested booking it is
+            rejected with a 400.
+    Problem:
+      type: object
+      required: [error_code, message]
+      additionalProperties: false
+      properties:
+        error_code:
+          type: string
+          description: Machine-readable reason, lower_snake_case (e.g. invalid_dog, invalid_booking, idempotency_conflict, booking_not_found, booking_not_cancellable).
+        message:
+          type: string
+          description: Human-readable explanation of the failure.

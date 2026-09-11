@@ -1,0 +1,299 @@
+openapi: 3.1.0
+info:
+  title: Walks API
+  version: 1.0.0
+  description: >
+    The walker's API. Browse the walks owners have requested, accept one,
+    start it at pickup and complete it with a report. A walk exists for
+    every requested booking; the walker never talks to the bookings
+    service.
+  contact:
+    name: team-walkers
+
+tags:
+  - name: walks
+    description: Walks as the walker sees them - open, accepted, in progress, completed.
+
+paths:
+  /walks:
+    get:
+      operationId: listWalks
+      summary: List walks
+      description: >
+        Returns walks, soonest scheduled_for first. Filter by status to
+        browse what is open, or by walker_id to see your own.
+      tags: [walks]
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/WalkStatus'
+        - name: walker_id
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The matching walks.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WalkList'
+
+  /walks/{walk_id}:
+    get:
+      operationId: getWalk
+      summary: Fetch a walk
+      description: Returns the walk's current state by its id.
+      tags: [walks]
+      parameters:
+        - name: walk_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: The walk.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Walk'
+        '404':
+          description: No such walk.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /walks/{walk_id}/accept:
+    post:
+      operationId: acceptWalk
+      summary: Accept a walk
+      description: >
+        Claims an open walk for the walker. Exactly one walker can hold a
+        walk; a second acceptance is a 409. On success a WalkAccepted
+        event is guaranteed to be published.
+      tags: [walks]
+      parameters:
+        - name: walk_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcceptWalkRequest'
+      responses:
+        '200':
+          description: Walk accepted; a WalkAccepted event will be published.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Walk'
+        '404':
+          description: No such walk.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: The walk is not open - already accepted by a walker, or cancelled.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /walks/{walk_id}/start:
+    post:
+      operationId: startWalk
+      summary: Start a walk
+      description: >
+        Marks the walk in progress at pickup. Only the walker who accepted
+        it can start it, and only while it is accepted. On success a
+        WalkStarted event is published.
+      tags: [walks]
+      parameters:
+        - name: walk_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StartWalkRequest'
+      responses:
+        '200':
+          description: Walk started; a WalkStarted event will be published.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Walk'
+        '404':
+          description: No such walk.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: The walk is not accepted, or was accepted by a different walker.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /walks/{walk_id}/complete:
+    post:
+      operationId: completeWalk
+      summary: Complete a walk
+      description: >
+        Ends the walk with the walker's report. Only the walker who
+        started it can complete it, and only while it is in progress. On
+        success the report is stored and a WalkCompleted event carrying
+        the walker's fee is guaranteed to be published - never one without
+        the other.
+      tags: [walks]
+      parameters:
+        - name: walk_id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompleteWalkRequest'
+      responses:
+        '200':
+          description: Walk completed; a WalkCompleted event will be published.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Walk'
+        '400':
+          description: Invalid report - a negative distance_metres, pee_count or poo_count.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '404':
+          description: No such walk.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        '409':
+          description: The walk is not in progress, or is held by a different walker.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+components:
+  schemas:
+    WalkStatus:
+      type: string
+      enum: [open, accepted, in_progress, completed, cancelled]
+    DogSize:
+      type: string
+      enum: [small, medium, large]
+    Walk:
+      type: object
+      required: [walk_id, booking_id, owner_id, dog_id, dog_name, dog_size, status, scheduled_for, duration_minutes, pickup_postcode, fee_pence]
+      additionalProperties: false
+      properties:
+        walk_id: { type: string, format: uuid }
+        booking_id: { type: string, format: uuid }
+        owner_id: { type: string, format: uuid }
+        dog_id: { type: string, format: uuid }
+        dog_name: { type: string }
+        dog_size:
+          $ref: '#/components/schemas/DogSize'
+        status:
+          $ref: '#/components/schemas/WalkStatus'
+        scheduled_for: { type: string, format: date-time }
+        duration_minutes:
+          type: integer
+          minimum: 30
+          maximum: 120
+          description: The booked length of the walk.
+        pickup_postcode: { type: string }
+        instructions:
+          type: string
+          description: The owner's notes for this walk.
+        fee_pence:
+          type: integer
+          minimum: 0
+          description: The walker's fee - 80 percent of the booking's price_pence, rounded down.
+        walker_id:
+          type: string
+          format: uuid
+          description: Present once accepted.
+        walker_name:
+          type: string
+          description: Present once accepted.
+        started_at: { type: string, format: date-time }
+        completed_at: { type: string, format: date-time }
+        report:
+          $ref: '#/components/schemas/WalkReport'
+    WalkReport:
+      type: object
+      description: The walker's report, present once completed.
+      required: [distance_metres, pee_count, poo_count]
+      additionalProperties: false
+      properties:
+        distance_metres: { type: integer, minimum: 0 }
+        pee_count: { type: integer, minimum: 0 }
+        poo_count: { type: integer, minimum: 0 }
+        notes: { type: string }
+    WalkList:
+      type: object
+      required: [walks]
+      additionalProperties: false
+      properties:
+        walks:
+          type: array
+          items:
+            $ref: '#/components/schemas/Walk'
+    AcceptWalkRequest:
+      type: object
+      required: [walker_id, walker_name]
+      additionalProperties: false
+      properties:
+        walker_id: { type: string, format: uuid }
+        walker_name:
+          type: string
+          minLength: 1
+          description: Shown to the owner so they know who is coming.
+    StartWalkRequest:
+      type: object
+      required: [walker_id]
+      additionalProperties: false
+      properties:
+        walker_id: { type: string, format: uuid }
+    CompleteWalkRequest:
+      type: object
+      required: [walker_id, distance_metres, pee_count, poo_count]
+      additionalProperties: false
+      properties:
+        walker_id: { type: string, format: uuid }
+        distance_metres: { type: integer, minimum: 0 }
+        pee_count: { type: integer, minimum: 0 }
+        poo_count: { type: integer, minimum: 0 }
+        notes: { type: string }
+    Problem:
+      type: object
+      required: [error_code, message]
+      additionalProperties: false
+      properties:
+        error_code:
+          type: string
+          description: Machine-readable reason, lower_snake_case (e.g. walk_not_found, walk_not_open, walk_not_accepted, walk_not_in_progress, walker_mismatch, invalid_report).
+        message:
+          type: string
+          description: Human-readable explanation of the failure.

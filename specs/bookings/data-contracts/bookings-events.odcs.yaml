@@ -1,0 +1,171 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: bookings-events-history
+name: Booking events history
+version: 1.0.0
+status: active
+domain: Dog walking
+tenant: hungovercoders
+dataProduct: bookings
+description:
+  purpose: >
+    Append-only historical record of the Booking aggregate's events. One
+    row per event, mirroring the AsyncAPI payloads on
+    bookings.requested.v1 and bookings.cancelled.v1 field for field - the
+    stream is ephemeral, this table is the record.
+  usage: >
+    Demand analytics (when and where owners want walks, for how long),
+    cancellation-rate reporting, audit, and replay for consumers that
+    joined after the fact. Not a source for a booking's current state -
+    use the bookings service API for that.
+  limitations: >
+    Delivery upstream is at-least-once; rows are deduplicated on the
+    CloudEvents envelope id, so exactly one row per event. Events land
+    within minutes but ordering across event types is only guaranteed
+    per booking_id.
+
+schema:
+  - name: booking_requested_events
+    logicalType: object
+    physicalName: booking_requested_events
+    physicalType: table
+    description: One row per BookingRequested event on bookings.requested.v1.
+    properties:
+      - name: event_id
+        logicalType: string
+        physicalType: uuid
+        required: true
+        unique: true
+        primaryKey: true
+        description: CloudEvents envelope id - the dedupe key.
+      - name: event_type
+        logicalType: string
+        physicalType: text
+        required: true
+        description: CloudEvents type, e.g. com.hungovercoders.bookings.requested.v1.
+      - name: event_source
+        logicalType: string
+        physicalType: text
+        required: true
+        description: CloudEvents source of the producing service.
+      - name: event_time
+        logicalType: date
+        physicalType: timestamp
+        required: true
+        description: CloudEvents envelope time.
+      - name: booking_id
+        logicalType: string
+        physicalType: uuid
+        required: true
+        unique: true
+      - name: owner_id
+        logicalType: string
+        physicalType: uuid
+        required: true
+      - name: dog_id
+        logicalType: string
+        physicalType: uuid
+        required: true
+      - name: dog_name
+        logicalType: string
+        physicalType: text
+        required: true
+      - name: dog_size
+        logicalType: string
+        physicalType: text
+        required: true
+        quality:
+          - rule: validValues
+            validValues: [small, medium, large]
+      - name: scheduled_for
+        logicalType: date
+        physicalType: timestamp
+        required: true
+        description: When the owner wants the walk to start.
+      - name: duration_minutes
+        logicalType: integer
+        physicalType: int
+        required: true
+        quality:
+          - rule: bookableLength
+            mustBeBetween: [30, 120]
+      - name: pickup_postcode
+        logicalType: string
+        physicalType: text
+        required: true
+      - name: instructions
+        logicalType: string
+        physicalType: text
+        required: false
+      - name: price_pence
+        logicalType: integer
+        physicalType: bigint
+        required: true
+        description: Fixed on request at 40 pence per minute.
+        quality:
+          - rule: nonNegative
+            mustBeGreaterThanOrEqualTo: 0
+      - name: requested_at
+        logicalType: date
+        physicalType: timestamp
+        required: true
+        partitioned: true
+
+  - name: booking_cancelled_events
+    logicalType: object
+    physicalName: booking_cancelled_events
+    physicalType: table
+    description: One row per BookingCancelled event on bookings.cancelled.v1.
+    properties:
+      - name: event_id
+        logicalType: string
+        physicalType: uuid
+        required: true
+        unique: true
+        primaryKey: true
+        description: CloudEvents envelope id - the dedupe key.
+      - name: event_type
+        logicalType: string
+        physicalType: text
+        required: true
+        description: CloudEvents type, e.g. com.hungovercoders.bookings.cancelled.v1.
+      - name: event_source
+        logicalType: string
+        physicalType: text
+        required: true
+        description: CloudEvents source of the producing service.
+      - name: event_time
+        logicalType: date
+        physicalType: timestamp
+        required: true
+        description: CloudEvents envelope time.
+      - name: booking_id
+        logicalType: string
+        physicalType: uuid
+        required: true
+        unique: true
+      - name: cancelled_at
+        logicalType: date
+        physicalType: timestamp
+        required: true
+        partitioned: true
+      - name: reason
+        logicalType: string
+        physicalType: text
+        required: true
+        quality:
+          - rule: validValues
+            validValues: [owner_request, dog_unwell, walker_no_show]
+
+slaProperties:
+  - property: latency
+    value: 15
+    unit: m
+
+team:
+  - username: team-owners
+    role: owner
+
+support:
+  - channel: '#bookings-support'
+    tool: slack

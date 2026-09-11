@@ -1,0 +1,112 @@
+asyncapi: 3.0.0
+info:
+  title: Bookings
+  version: 1.0.0
+  description: >
+    Booking lifecycle events as CloudEvents 1.0 structured envelopes. A
+    BookingRequested event carries everything a walker needs to decide on
+    and do the walk - the dog's name and size and the owner's instructions
+    - so the walks service never has to look the booking up. Consumers
+    dedupe on the envelope id and must not assume ordering across
+    channels, only within a booking_id.
+  contact:
+    name: team-owners
+    url: https://github.com/hungovercoders
+    email: team-owners@hungovercoders.com
+  tags:
+    - name: bookings
+
+defaultContentType: application/cloudevents+json
+
+channels:
+  bookingRequested:
+    address: bookings.requested.v1
+    bindings:
+      ws: {}
+    messages:
+      BookingRequested:
+        $ref: '#/components/messages/BookingRequested'
+  bookingCancelled:
+    address: bookings.cancelled.v1
+    bindings:
+      ws: {}
+    messages:
+      BookingCancelled:
+        $ref: '#/components/messages/BookingCancelled'
+
+operations:
+  publishBookingRequested:
+    action: send
+    description: Emitted when an owner's walk request is accepted and persisted.
+    channel:
+      $ref: '#/channels/bookingRequested'
+    messages:
+      - $ref: '#/channels/bookingRequested/messages/BookingRequested'
+  publishBookingCancelled:
+    action: send
+    description: Emitted when the owner cancels a booking, with the reason.
+    channel:
+      $ref: '#/channels/bookingCancelled'
+    messages:
+      - $ref: '#/channels/bookingCancelled/messages/BookingCancelled'
+
+components:
+  messages:
+    BookingRequested:
+      name: BookingRequested
+      title: Booking requested
+      payload:
+        type: object
+        required: [specversion, id, source, type, time, datacontenttype, data, subject]
+        additionalProperties: false
+        properties:
+          specversion: { type: string, const: '1.0' }
+          id: { type: string, format: uuid }
+          source: { type: string, const: /bookings }
+          type: { type: string, const: com.hungovercoders.bookings.requested.v1 }
+          subject: { type: string, format: uuid }
+          time: { type: string, format: date-time }
+          datacontenttype: { type: string, const: application/json }
+          data:
+            type: object
+            required: [booking_id, owner_id, dog_id, dog_name, dog_size, scheduled_for, duration_minutes, pickup_postcode, price_pence, requested_at]
+            additionalProperties: false
+            properties:
+              booking_id: { type: string, format: uuid }
+              owner_id: { type: string, format: uuid }
+              dog_id: { type: string, format: uuid }
+              dog_name: { type: string }
+              dog_size:
+                type: string
+                enum: [small, medium, large]
+              scheduled_for: { type: string, format: date-time }
+              duration_minutes: { type: integer, minimum: 30, maximum: 120 }
+              pickup_postcode: { type: string }
+              instructions: { type: string }
+              price_pence: { type: integer, minimum: 0 }
+              requested_at: { type: string, format: date-time }
+    BookingCancelled:
+      name: BookingCancelled
+      title: Booking cancelled
+      payload:
+        type: object
+        required: [specversion, id, source, type, time, datacontenttype, data, subject]
+        additionalProperties: false
+        properties:
+          specversion: { type: string, const: '1.0' }
+          id: { type: string, format: uuid }
+          source: { type: string, const: /bookings }
+          type: { type: string, const: com.hungovercoders.bookings.cancelled.v1 }
+          subject: { type: string, format: uuid }
+          time: { type: string, format: date-time }
+          datacontenttype: { type: string, const: application/json }
+          data:
+            type: object
+            required: [booking_id, cancelled_at, reason]
+            additionalProperties: false
+            properties:
+              booking_id: { type: string, format: uuid }
+              cancelled_at: { type: string, format: date-time }
+              reason:
+                type: string
+                enum: [owner_request, dog_unwell, walker_no_show]
