@@ -1,0 +1,64 @@
+apiVersion: sysspec/v1
+kind: Service
+name: walks
+title: Walks
+version: 1.0.0
+domain: Dog walking
+owner: team-walkers
+summary: >
+  The walker's perspective. Owns the Walk aggregate: a walk opens for
+  every booking an owner requests, walkers browse the open ones and
+  accept one, start it at pickup and complete it with a report for the
+  owner - which is also what earns the walker their fee. Cancellations
+  from the owner side close the walk.
+
+artifacts:
+  - kind: openapi
+    path: openapi/walks.openapi.yaml
+    version: 1.0.0
+    gated: true
+    summary: Walker-facing API - browse, accept, start and complete walks.
+
+  - kind: asyncapi
+    path: asyncapi/walks.asyncapi.yaml
+    version: 1.0.0
+    gated: true
+    summary: Walk lifecycle events - accepted, started and completed.
+
+  - kind: feature
+    path: features/pick-up-a-walk.feature
+    version: 1.0.0
+    gated: true
+    summary: Acceptance criteria for opening walks from bookings, browsing and accepting them.
+
+  - kind: feature
+    path: features/walk-the-dog.feature
+    version: 1.0.0
+    gated: true
+    summary: Acceptance criteria for starting a walk, completing it with a report, and the walker's fee.
+
+  - kind: data-contract
+    path: data-contracts/walks-events.odcs.yaml
+    version: 1.0.0
+    gated: true
+    summary: Append-only historical record of completed walks.
+
+  - kind: data-contract
+    path: data-contracts/walker-payouts-daily.odcs.yaml
+    version: 1.0.0
+    gated: true
+    summary: Daily fee totals per walker for payouts.
+
+  - kind: doc
+    path: docs/walker-perspective.md
+    gated: false
+    summary: Why the walker side is modelled as walks, the fee split, and what the walker never sees.
+
+produces:
+  - walks.accepted.v1
+  - walks.started.v1
+  - walks.completed.v1
+
+consumes:
+  - bookings.requested.v1
+  - bookings.cancelled.v1

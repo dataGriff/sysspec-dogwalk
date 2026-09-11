@@ -1,0 +1,153 @@
+asyncapi: 3.0.0
+info:
+  title: Walks
+  version: 1.0.0
+  description: >
+    Walk lifecycle events as CloudEvents 1.0 structured envelopes. The
+    bookings service follows them to show the owner who has the dog and,
+    on WalkCompleted, the walker's report. WalkCompleted is also the
+    payout trigger - it carries the fee. Consumers dedupe on the envelope
+    id and must not assume ordering across channels, only within a
+    walk_id.
+  contact:
+    name: team-walkers
+    url: https://github.com/hungovercoders
+    email: team-walkers@hungovercoders.com
+  tags:
+    - name: walks
+
+defaultContentType: application/cloudevents+json
+
+channels:
+  walkAccepted:
+    address: walks.accepted.v1
+    bindings:
+      ws: {}
+    messages:
+      WalkAccepted:
+        $ref: '#/components/messages/WalkAccepted'
+  walkStarted:
+    address: walks.started.v1
+    bindings:
+      ws: {}
+    messages:
+      WalkStarted:
+        $ref: '#/components/messages/WalkStarted'
+  walkCompleted:
+    address: walks.completed.v1
+    bindings:
+      ws: {}
+    messages:
+      WalkCompleted:
+        $ref: '#/components/messages/WalkCompleted'
+
+operations:
+  publishWalkAccepted:
+    action: send
+    description: Emitted when a walker claims an open walk.
+    channel:
+      $ref: '#/channels/walkAccepted'
+    messages:
+      - $ref: '#/channels/walkAccepted/messages/WalkAccepted'
+  publishWalkStarted:
+    action: send
+    description: Emitted when the walker picks the dog up and the walk begins.
+    channel:
+      $ref: '#/channels/walkStarted'
+    messages:
+      - $ref: '#/channels/walkStarted/messages/WalkStarted'
+  publishWalkCompleted:
+    action: send
+    description: Emitted once, when the walk ends with the walker's report and fee.
+    channel:
+      $ref: '#/channels/walkCompleted'
+    messages:
+      - $ref: '#/channels/walkCompleted/messages/WalkCompleted'
+
+components:
+  messages:
+    WalkAccepted:
+      name: WalkAccepted
+      title: Walk accepted
+      payload:
+        type: object
+        required: [specversion, id, source, type, time, datacontenttype, data, subject]
+        additionalProperties: false
+        properties:
+          specversion: { type: string, const: '1.0' }
+          id: { type: string, format: uuid }
+          source: { type: string, const: /walks }
+          type: { type: string, const: com.hungovercoders.walks.accepted.v1 }
+          subject: { type: string, format: uuid }
+          time: { type: string, format: date-time }
+          datacontenttype: { type: string, const: application/json }
+          data:
+            type: object
+            required: [walk_id, booking_id, walker_id, walker_name, accepted_at]
+            additionalProperties: false
+            properties:
+              walk_id: { type: string, format: uuid }
+              booking_id: { type: string, format: uuid }
+              walker_id: { type: string, format: uuid }
+              walker_name: { type: string }
+              accepted_at: { type: string, format: date-time }
+    WalkStarted:
+      name: WalkStarted
+      title: Walk started
+      payload:
+        type: object
+        required: [specversion, id, source, type, time, datacontenttype, data, subject]
+        additionalProperties: false
+        properties:
+          specversion: { type: string, const: '1.0' }
+          id: { type: string, format: uuid }
+          source: { type: string, const: /walks }
+          type: { type: string, const: com.hungovercoders.walks.started.v1 }
+          subject: { type: string, format: uuid }
+          time: { type: string, format: date-time }
+          datacontenttype: { type: string, const: application/json }
+          data:
+            type: object
+            required: [walk_id, booking_id, walker_id, started_at]
+            additionalProperties: false
+            properties:
+              walk_id: { type: string, format: uuid }
+              booking_id: { type: string, format: uuid }
+              walker_id: { type: string, format: uuid }
+              started_at: { type: string, format: date-time }
+    WalkCompleted:
+      name: WalkCompleted
+      title: Walk completed
+      payload:
+        type: object
+        required: [specversion, id, source, type, time, datacontenttype, data, subject]
+        additionalProperties: false
+        properties:
+          specversion: { type: string, const: '1.0' }
+          id: { type: string, format: uuid }
+          source: { type: string, const: /walks }
+          type: { type: string, const: com.hungovercoders.walks.completed.v1 }
+          subject: { type: string, format: uuid }
+          time: { type: string, format: date-time }
+          datacontenttype: { type: string, const: application/json }
+          data:
+            type: object
+            required: [walk_id, booking_id, walker_id, completed_at, walked_minutes, distance_metres, pee_count, poo_count, fee_pence]
+            additionalProperties: false
+            properties:
+              walk_id: { type: string, format: uuid }
+              booking_id: { type: string, format: uuid }
+              walker_id: { type: string, format: uuid }
+              completed_at: { type: string, format: date-time }
+              walked_minutes:
+                type: integer
+                minimum: 0
+                description: Actual minutes from started_at to completed_at, rounded down.
+              distance_metres: { type: integer, minimum: 0 }
+              pee_count: { type: integer, minimum: 0 }
+              poo_count: { type: integer, minimum: 0 }
+              notes: { type: string }
+              fee_pence:
+                type: integer
+                minimum: 0
+                description: The walker's fee for this walk - what the payout is built from.

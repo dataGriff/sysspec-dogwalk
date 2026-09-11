@@ -1,0 +1,195 @@
+apiVersion: mocks.microcks.io/v1alpha1
+kind: APIExamples
+metadata:
+  name: Bookings API
+  version: 1.0.0
+operations:
+  'POST /dogs':
+    registered:
+      request:
+        headers:
+          Content-Type: application/json
+        body: |-
+          {
+            "owner_id": "22222222-2222-2222-2222-222222222222",
+            "name": "Biscuit",
+            "breed": "Cockapoo",
+            "size": "medium"
+          }
+      response:
+        status: "201"
+        mediaType: application/json
+        body: |-
+          {
+            "dog_id": "33333333-3333-3333-3333-333333333333",
+            "owner_id": "22222222-2222-2222-2222-222222222222",
+            "name": "Biscuit",
+            "breed": "Cockapoo",
+            "size": "medium"
+          }
+  'GET /dogs/{dog_id}':
+    registered:
+      request:
+        parameters:
+          dog_id: 33333333-3333-3333-3333-333333333333
+      response:
+        status: "200"
+        mediaType: application/json
+        body: |-
+          {
+            "dog_id": "33333333-3333-3333-3333-333333333333",
+            "owner_id": "22222222-2222-2222-2222-222222222222",
+            "name": "Biscuit",
+            "breed": "Cockapoo",
+            "size": "medium"
+          }
+    not_found:
+      request:
+        parameters:
+          dog_id: 99999999-9999-9999-9999-999999999999
+      response:
+        status: "404"
+        mediaType: application/json
+        body: |-
+          {
+            "error_code": "dog_not_found",
+            "message": "No dog 99999999-9999-9999-9999-999999999999"
+          }
+  'POST /bookings':
+    requested:
+      request:
+        headers:
+          Content-Type: application/json
+        body: |-
+          {
+            "owner_id": "22222222-2222-2222-2222-222222222222",
+            "dog_id": "33333333-3333-3333-3333-333333333333",
+            "scheduled_for": "2026-09-14T09:00:00Z",
+            "duration_minutes": 60,
+            "pickup_postcode": "CF10 1AA",
+            "instructions": "Scared of bikes, keep to the park"
+          }
+      response:
+        status: "201"
+        mediaType: application/json
+        body: |-
+          {
+            "booking_id": "11111111-1111-1111-1111-111111111111",
+            "owner_id": "22222222-2222-2222-2222-222222222222",
+            "dog_id": "33333333-3333-3333-3333-333333333333",
+            "status": "requested",
+            "scheduled_for": "2026-09-14T09:00:00Z",
+            "duration_minutes": 60,
+            "pickup_postcode": "CF10 1AA",
+            "instructions": "Scared of bikes, keep to the park",
+            "price_pence": 2400
+          }
+  'GET /bookings/{booking_id}':
+    completed:
+      request:
+        parameters:
+          booking_id: 11111111-1111-1111-1111-111111111111
+      response:
+        status: "200"
+        mediaType: application/json
+        body: |-
+          {
+            "booking_id": "11111111-1111-1111-1111-111111111111",
+            "owner_id": "22222222-2222-2222-2222-222222222222",
+            "dog_id": "33333333-3333-3333-3333-333333333333",
+            "status": "completed",
+            "scheduled_for": "2026-09-14T09:00:00Z",
+            "duration_minutes": 60,
+            "pickup_postcode": "CF10 1AA",
+            "instructions": "Scared of bikes, keep to the park",
+            "price_pence": 2400,
+            "walker_id": "55555555-5555-5555-5555-555555555555",
+            "walker_name": "Sam",
+            "report": {
+              "walked_minutes": 59,
+              "distance_metres": 3200,
+              "pee_count": 2,
+              "poo_count": 1,
+              "notes": "Lovely walk, chased a squirrel"
+            }
+          }
+    not_found:
+      request:
+        parameters:
+          booking_id: 99999999-9999-9999-9999-999999999999
+      response:
+        status: "404"
+        mediaType: application/json
+        body: |-
+          {
+            "error_code": "booking_not_found",
+            "message": "No booking 99999999-9999-9999-9999-999999999999"
+          }
+  'POST /bookings/{booking_id}/cancel':
+    cancelled:
+      request:
+        parameters:
+          booking_id: 44444444-4444-4444-4444-444444444444
+        headers:
+          Content-Type: application/json
+        body: |-
+          {
+            "reason": "dog_unwell"
+          }
+      response:
+        status: "200"
+        mediaType: application/json
+        body: |-
+          {
+            "booking_id": "44444444-4444-4444-4444-444444444444",
+            "owner_id": "22222222-2222-2222-2222-222222222222",
+            "dog_id": "33333333-3333-3333-3333-333333333333",
+            "status": "cancelled",
+            "scheduled_for": "2026-09-15T17:30:00Z",
+            "duration_minutes": 30,
+            "pickup_postcode": "CF10 1AA",
+            "price_pence": 1200
+          }
+  'GET /owners/{owner_id}/bookings':
+    all:
+      request:
+        parameters:
+          owner_id: 22222222-2222-2222-2222-222222222222
+      response:
+        status: "200"
+        mediaType: application/json
+        body: |-
+          {
+            "bookings": [
+              {
+                "booking_id": "44444444-4444-4444-4444-444444444444",
+                "owner_id": "22222222-2222-2222-2222-222222222222",
+                "dog_id": "33333333-3333-3333-3333-333333333333",
+                "status": "cancelled",
+                "scheduled_for": "2026-09-15T17:30:00Z",
+                "duration_minutes": 30,
+                "pickup_postcode": "CF10 1AA",
+                "price_pence": 1200
+              },
+              {
+                "booking_id": "11111111-1111-1111-1111-111111111111",
+                "owner_id": "22222222-2222-2222-2222-222222222222",
+                "dog_id": "33333333-3333-3333-3333-333333333333",
+                "status": "completed",
+                "scheduled_for": "2026-09-14T09:00:00Z",
+                "duration_minutes": 60,
+                "pickup_postcode": "CF10 1AA",
+                "instructions": "Scared of bikes, keep to the park",
+                "price_pence": 2400,
+                "walker_id": "55555555-5555-5555-5555-555555555555",
+                "walker_name": "Sam",
+                "report": {
+                  "walked_minutes": 59,
+                  "distance_metres": 3200,
+                  "pee_count": 2,
+                  "poo_count": 1,
+                  "notes": "Lovely walk, chased a squirrel"
+                }
+              }
+            ]
+          }

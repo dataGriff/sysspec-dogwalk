@@ -1,0 +1,181 @@
+apiVersion: mocks.microcks.io/v1alpha1
+kind: APIExamples
+metadata:
+  name: Walks API
+  version: 1.0.0
+operations:
+  'GET /walks':
+    open:
+      request:
+        parameters:
+          status: open
+      response:
+        status: "200"
+        mediaType: application/json
+        body: |-
+          {
+            "walks": [
+              {
+                "walk_id": "77777777-7777-7777-7777-777777777777",
+                "booking_id": "88888888-8888-8888-8888-888888888888",
+                "owner_id": "22222222-2222-2222-2222-222222222222",
+                "dog_id": "33333333-3333-3333-3333-333333333333",
+                "dog_name": "Biscuit",
+                "dog_size": "medium",
+                "status": "open",
+                "scheduled_for": "2026-09-16T08:00:00Z",
+                "duration_minutes": 30,
+                "pickup_postcode": "CF10 1AA",
+                "fee_pence": 960
+              }
+            ]
+          }
+  'GET /walks/{walk_id}':
+    completed:
+      request:
+        parameters:
+          walk_id: 66666666-6666-6666-6666-666666666666
+      response:
+        status: "200"
+        mediaType: application/json
+        body: |-
+          {
+            "walk_id": "66666666-6666-6666-6666-666666666666",
+            "booking_id": "11111111-1111-1111-1111-111111111111",
+            "owner_id": "22222222-2222-2222-2222-222222222222",
+            "dog_id": "33333333-3333-3333-3333-333333333333",
+            "dog_name": "Biscuit",
+            "dog_size": "medium",
+            "status": "completed",
+            "scheduled_for": "2026-09-14T09:00:00Z",
+            "duration_minutes": 60,
+            "pickup_postcode": "CF10 1AA",
+            "instructions": "Scared of bikes, keep to the park",
+            "fee_pence": 1920,
+            "walker_id": "55555555-5555-5555-5555-555555555555",
+            "walker_name": "Sam",
+            "started_at": "2026-09-14T09:02:00Z",
+            "completed_at": "2026-09-14T10:01:00Z",
+            "report": {
+              "distance_metres": 3200,
+              "pee_count": 2,
+              "poo_count": 1,
+              "notes": "Lovely walk, chased a squirrel"
+            }
+          }
+    not_found:
+      request:
+        parameters:
+          walk_id: 99999999-9999-9999-9999-999999999999
+      response:
+        status: "404"
+        mediaType: application/json
+        body: |-
+          {
+            "error_code": "walk_not_found",
+            "message": "No walk 99999999-9999-9999-9999-999999999999"
+          }
+  'POST /walks/{walk_id}/accept':
+    accepted:
+      request:
+        parameters:
+          walk_id: 77777777-7777-7777-7777-777777777777
+        headers:
+          Content-Type: application/json
+        body: |-
+          {
+            "walker_id": "55555555-5555-5555-5555-555555555555",
+            "walker_name": "Sam"
+          }
+      response:
+        status: "200"
+        mediaType: application/json
+        body: |-
+          {
+            "walk_id": "77777777-7777-7777-7777-777777777777",
+            "booking_id": "88888888-8888-8888-8888-888888888888",
+            "owner_id": "22222222-2222-2222-2222-222222222222",
+            "dog_id": "33333333-3333-3333-3333-333333333333",
+            "dog_name": "Biscuit",
+            "dog_size": "medium",
+            "status": "accepted",
+            "scheduled_for": "2026-09-16T08:00:00Z",
+            "duration_minutes": 30,
+            "pickup_postcode": "CF10 1AA",
+            "fee_pence": 960,
+            "walker_id": "55555555-5555-5555-5555-555555555555",
+            "walker_name": "Sam"
+          }
+  'POST /walks/{walk_id}/start':
+    started:
+      request:
+        parameters:
+          walk_id: 77777777-7777-7777-7777-777777777777
+        headers:
+          Content-Type: application/json
+        body: |-
+          {
+            "walker_id": "55555555-5555-5555-5555-555555555555"
+          }
+      response:
+        status: "200"
+        mediaType: application/json
+        body: |-
+          {
+            "walk_id": "77777777-7777-7777-7777-777777777777",
+            "booking_id": "88888888-8888-8888-8888-888888888888",
+            "owner_id": "22222222-2222-2222-2222-222222222222",
+            "dog_id": "33333333-3333-3333-3333-333333333333",
+            "dog_name": "Biscuit",
+            "dog_size": "medium",
+            "status": "in_progress",
+            "scheduled_for": "2026-09-16T08:00:00Z",
+            "duration_minutes": 30,
+            "pickup_postcode": "CF10 1AA",
+            "fee_pence": 960,
+            "walker_id": "55555555-5555-5555-5555-555555555555",
+            "walker_name": "Sam",
+            "started_at": "2026-09-16T08:03:00Z"
+          }
+  'POST /walks/{walk_id}/complete':
+    completed:
+      request:
+        parameters:
+          walk_id: 77777777-7777-7777-7777-777777777777
+        headers:
+          Content-Type: application/json
+        body: |-
+          {
+            "walker_id": "55555555-5555-5555-5555-555555555555",
+            "distance_metres": 1800,
+            "pee_count": 1,
+            "poo_count": 1,
+            "notes": "Short and sweet"
+          }
+      response:
+        status: "200"
+        mediaType: application/json
+        body: |-
+          {
+            "walk_id": "77777777-7777-7777-7777-777777777777",
+            "booking_id": "88888888-8888-8888-8888-888888888888",
+            "owner_id": "22222222-2222-2222-2222-222222222222",
+            "dog_id": "33333333-3333-3333-3333-333333333333",
+            "dog_name": "Biscuit",
+            "dog_size": "medium",
+            "status": "completed",
+            "scheduled_for": "2026-09-16T08:00:00Z",
+            "duration_minutes": 30,
+            "pickup_postcode": "CF10 1AA",
+            "fee_pence": 960,
+            "walker_id": "55555555-5555-5555-5555-555555555555",
+            "walker_name": "Sam",
+            "started_at": "2026-09-16T08:03:00Z",
+            "completed_at": "2026-09-16T08:34:00Z",
+            "report": {
+              "distance_metres": 1800,
+              "pee_count": 1,
+              "poo_count": 1,
+              "notes": "Short and sweet"
+            }
+          }

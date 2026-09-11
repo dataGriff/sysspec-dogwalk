@@ -1,0 +1,80 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: walker-payouts-daily
+name: Daily walker payouts
+version: 1.0.0
+status: active
+domain: Dog walking
+tenant: hungovercoders
+dataProduct: walks
+description:
+  purpose: >
+    What each walker is owed per day. One row per walker per completion
+    date, summing fee_pence over the walks completed that day, built
+    from the walk events history.
+  usage: >
+    The payout run and a walker's earnings view. Not a source for
+    per-walk detail - join back to walk_completed_events for that.
+  limitations: >
+    A day's row is rebuilt as late completion events land; do not treat
+    a partition as final until D+1.
+
+schema:
+  - name: walker_payouts
+    logicalType: object
+    physicalName: walker_payouts_daily
+    physicalType: table
+    description: One row per walker per completion date.
+    properties:
+      - name: payout_date
+        logicalType: date
+        physicalType: date
+        required: true
+        partitioned: true
+        primaryKey: true
+        description: The UTC date the walks were completed on.
+      - name: walker_id
+        logicalType: string
+        physicalType: uuid
+        required: true
+        primaryKey: true
+      - name: walks_completed
+        logicalType: integer
+        physicalType: int
+        required: true
+        description: Number of walks the walker completed that day.
+        quality:
+          - rule: atLeastOne
+            mustBeGreaterThanOrEqualTo: 1
+      - name: walked_minutes
+        logicalType: integer
+        physicalType: int
+        required: true
+        description: Total actual minutes walked that day.
+        quality:
+          - rule: nonNegative
+            mustBeGreaterThanOrEqualTo: 0
+      - name: fee_pence
+        logicalType: integer
+        physicalType: bigint
+        required: true
+        description: Total fee owed for the day, in pence.
+        quality:
+          - rule: nonNegative
+            mustBeGreaterThanOrEqualTo: 0
+
+slaProperties:
+  - property: frequency
+    value: 1
+    unit: d
+  - property: latency
+    value: 4
+    unit: h
+
+team:
+  - username: team-walkers
+    role: owner
+
+support:
+  - channel: '#walks-support'
+    tool: slack

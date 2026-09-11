@@ -1,0 +1,65 @@
+apiVersion: sysspec/v1
+kind: Service
+name: bookings
+title: Bookings
+version: 1.0.0
+domain: Dog walking
+owner: team-owners
+summary: >
+  The owner's perspective. Owns the Dog and Booking aggregates: an owner
+  registers their dogs, requests a walk for one of them at a time and a
+  price they see up front, and can cancel until the dog is on the lead.
+  From then on the booking follows the walk - accepted, in progress,
+  completed with the walker's report - from the events the walks
+  service publishes.
+
+artifacts:
+  - kind: openapi
+    path: openapi/bookings.openapi.yaml
+    version: 1.0.0
+    gated: true
+    summary: Owner-facing API - dog registration, walk requests, cancellation and booking lookup.
+
+  - kind: asyncapi
+    path: asyncapi/bookings.asyncapi.yaml
+    version: 1.0.0
+    gated: true
+    summary: Booking lifecycle events - requested and cancelled.
+
+  - kind: feature
+    path: features/register-dog.feature
+    version: 1.0.0
+    gated: true
+    summary: Acceptance criteria for registering and looking up a dog.
+
+  - kind: feature
+    path: features/request-walk.feature
+    version: 1.0.0
+    gated: true
+    summary: Acceptance criteria for requesting, pricing and listing walks, with guaranteed event publication.
+
+  - kind: feature
+    path: features/follow-booking.feature
+    version: 1.0.0
+    gated: true
+    summary: Acceptance criteria for cancelling a booking and following the walk from the walker's events.
+
+  - kind: data-contract
+    path: data-contracts/bookings-events.odcs.yaml
+    version: 1.0.0
+    gated: true
+    summary: Append-only historical record of the booking lifecycle events.
+
+  - kind: doc
+    path: docs/owner-perspective.md
+    gated: false
+    summary: Why the owner side is modelled as bookings, and what it deliberately leaves to the walker.
+
+produces:
+  - bookings.requested.v1
+  - bookings.cancelled.v1
+
+consumes:
+  - walks.accepted.v1
+  - walks.started.v1
+  - walks.completed.v1

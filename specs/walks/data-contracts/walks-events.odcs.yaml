@@ -1,0 +1,129 @@
+apiVersion: v3.1.0
+kind: DataContract
+id: walks-events-history
+name: Walk events history
+version: 1.0.0
+status: active
+domain: Dog walking
+tenant: hungovercoders
+dataProduct: walks
+description:
+  purpose: >
+    Append-only historical record of completed walks. One row per
+    WalkCompleted event on walks.completed.v1, mirroring the AsyncAPI
+    payload field for field - the stream is ephemeral, this table is the
+    record of every walk that actually happened.
+  usage: >
+    The source for walker payouts (see walker-payouts-daily), an owner's
+    walk history, and walk-quality analytics (distance and time per
+    booked length). Not a source for a walk's current state - use the
+    walks service API for that.
+  limitations: >
+    Delivery upstream is at-least-once; rows are deduplicated on the
+    CloudEvents envelope id, so exactly one row per completed walk.
+    Accepted and started events are not recorded here - only completion
+    earns a fee.
+
+schema:
+  - name: walk_completed_events
+    logicalType: object
+    physicalName: walk_completed_events
+    physicalType: table
+    description: One row per WalkCompleted event on walks.completed.v1.
+    properties:
+      - name: event_id
+        logicalType: string
+        physicalType: uuid
+        required: true
+        unique: true
+        primaryKey: true
+        description: CloudEvents envelope id - the dedupe key.
+      - name: event_type
+        logicalType: string
+        physicalType: text
+        required: true
+        description: CloudEvents type, e.g. com.hungovercoders.walks.completed.v1.
+      - name: event_source
+        logicalType: string
+        physicalType: text
+        required: true
+        description: CloudEvents source of the producing service.
+      - name: event_time
+        logicalType: date
+        physicalType: timestamp
+        required: true
+        description: CloudEvents envelope time.
+      - name: walk_id
+        logicalType: string
+        physicalType: uuid
+        required: true
+        unique: true
+      - name: booking_id
+        logicalType: string
+        physicalType: uuid
+        required: true
+        unique: true
+        description: The owner's booking this walk fulfilled.
+      - name: walker_id
+        logicalType: string
+        physicalType: uuid
+        required: true
+      - name: completed_at
+        logicalType: date
+        physicalType: timestamp
+        required: true
+        partitioned: true
+      - name: walked_minutes
+        logicalType: integer
+        physicalType: int
+        required: true
+        description: Actual minutes from started_at to completed_at.
+        quality:
+          - rule: nonNegative
+            mustBeGreaterThanOrEqualTo: 0
+      - name: distance_metres
+        logicalType: integer
+        physicalType: int
+        required: true
+        quality:
+          - rule: nonNegative
+            mustBeGreaterThanOrEqualTo: 0
+      - name: pee_count
+        logicalType: integer
+        physicalType: int
+        required: true
+        quality:
+          - rule: nonNegative
+            mustBeGreaterThanOrEqualTo: 0
+      - name: poo_count
+        logicalType: integer
+        physicalType: int
+        required: true
+        quality:
+          - rule: nonNegative
+            mustBeGreaterThanOrEqualTo: 0
+      - name: notes
+        logicalType: string
+        physicalType: text
+        required: false
+      - name: fee_pence
+        logicalType: integer
+        physicalType: bigint
+        required: true
+        description: The walker's fee for this walk.
+        quality:
+          - rule: nonNegative
+            mustBeGreaterThanOrEqualTo: 0
+
+slaProperties:
+  - property: latency
+    value: 15
+    unit: m
+
+team:
+  - username: team-walkers
+    role: owner
+
+support:
+  - channel: '#walks-support'
+    tool: slack
